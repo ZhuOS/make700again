@@ -88,7 +88,7 @@ def generate_response(to_user, from_user, content):
         
     return response
 
-def get_stock_data(stock_code='002371.SZ'):  # 使用北方华创作为示例
+def get_stock_data(stock_code='300604.SZ'):  # 使用长川科技作为示例
     """获取股票的价格和成交量数据"""
     try:
         # 获取最近5年的数据
