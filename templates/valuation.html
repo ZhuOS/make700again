@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>半导体股票分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        #chart {
+            width: 100%;
+            height: 600px;
+            margin-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+            color: #666;
+        }
+        .error {
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+            color: #ff4444;
+            background-color: #fff5f5;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .retry-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .retry-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>半导体股票分析</h1>
+        <div id="chart"></div>
+        <div class="loading" id="loading">加载中...</div>
+        <div class="error" id="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        // 初始化图表
+        var myChart = echarts.init(document.getElementById('chart'));
+        var loading = document.getElementById('loading');
+        var error = document.getElementById('error');
+
+        function fetchData() {
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            
+            // 获取数据并绘制图表
+            fetch('/api/pe_data')
+                .then(response => response.json())
+                .then(result => {
+                    if (result.code === 0 && result.data.length > 0) {
+                        loading.style.display = 'none';
+                        
+                        // 准备数据
+                        const dates = result.data.map(item => item.trade_date);
+                        const prices = result.data.map(item => item.adj_close);
+                        const pricePercentiles = result.data.map(item => item.price_percentile);
+                        const volumes = result.data.map(item => item.vol);
+                        const volumePercentiles = result.data.map(item => item.volume_percentile);
+
+                        // 配置图表选项
+                        const option = {
+                            title: {
+                                text: '北方华创价格及成交量分析',
+                                left: 'center'
+                            },
+                            tooltip: {
+                                trigger: 'axis',
+                                axisPointer: {
+                                    type: 'cross'
+                                }
+                            },
+                            legend: {
+                                data: ['复权价格', '价格百分位', '成交量', '成交量百分位'],
+                                top: 30
+                            },
+                            grid: [
+                                {
+                                    left: '3%',
+                                    right: '4%',
+                                    height: '60%',
+                                    containLabel: true
+                                },
+                                {
+                                    left: '3%',
+                                    right: '4%',
+                                    top: '75%',
+                                    height: '20%',
+                                    containLabel: true
+                                }
+                            ],
+                            xAxis: [
+                                {
+                                    type: 'category',
+                                    data: dates,
+                                    axisLabel: {
+                                        rotate: 45
+                                    },
+                                    gridIndex: 0
+                                },
+                                {
+                                    type: 'category',
+                                    data: dates,
+                                    axisLabel: {
+                                        rotate: 45
+                                    },
+                                    gridIndex: 1
+                                }
+                            ],
+                            yAxis: [
+                                {
+                                    type: 'value',
+                                    name: '价格',
+                                    position: 'left',
+                                    gridIndex: 0
+                                },
+                                {
+                                    type: 'value',
+                                    name: '百分位',
+                                    position: 'right',
+                                    max: 1,
+                                    min: 0,
+                                    axisLabel: {
+                                        formatter: '{value}%'
+                                    },
+                                    gridIndex: 0
+                                },
+                                {
+                                    type: 'value',
+                                    name: '成交量',
+                                    position: 'left',
+                                    gridIndex: 1
+                                },
+                                {
+                                    type: 'value',
+                                    name: '百分位',
+                                    position: 'right',
+                                    max: 1,
+                                    min: 0,
+                                    axisLabel: {
+                                        formatter: '{value}%'
+                                    },
+                                    gridIndex: 1
+                                }
+                            ],
+                            series: [
+                                {
+                                    name: '复权价格',
+                                    type: 'line',
+                                    data: prices,
+                                    smooth: true,
+                                    itemStyle: {
+                                        color: '#5470c6'
+                                    }
+                                },
+                                {
+                                    name: '价格百分位',
+                                    type: 'line',
+                                    yAxisIndex: 1,
+                                    data: pricePercentiles.map(p => (p * 100).toFixed(2)),
+                                    smooth: true,
+                                    itemStyle: {
+                                        color: '#91cc75'
+                                    }
+                                },
+                                {
+                                    name: '成交量',
+                                    type: 'bar',
+                                    xAxisIndex: 1,
+                                    yAxisIndex: 2,
+                                    data: volumes,
+                                    itemStyle: {
+                                        color: '#fac858'
+                                    }
+                                },
+                                {
+                                    name: '成交量百分位',
+                                    type: 'line',
+                                    xAxisIndex: 1,
+                                    yAxisIndex: 3,
+                                    data: volumePercentiles.map(p => (p * 100).toFixed(2)),
+                                    smooth: true,
+                                    itemStyle: {
+                                        color: '#ee6666'
+                                    }
+                                }
+                            ]
+                        };
+
+                        // 使用配置项显示图表
+                        myChart.setOption(option);
+
+                        // 响应式调整
+                        window.addEventListener('resize', function() {
+                            myChart.resize();
+                        });
+                    } else {
+                        loading.style.display = 'none';
+                        error.style.display = 'block';
+                        error.innerHTML = result.message + '<br><button class="retry-button" onclick="fetchData()">重试</button>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    loading.style.display = 'none';
+                    error.style.display = 'block';
+                    error.innerHTML = '加载失败，请检查网络连接<br><button class="retry-button" onclick="fetchData()">重试</button>';
+                });
+        }
+
+        // 初始加载
+        fetchData();
+    </script>
+</body>
+</html> 
